@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import os
 import sys
-sys.path.append(os.getcwd() + '/privpy_library/privpy_lib')
+sys.path.append(os.getcwd() + '/privpy_lib')
 
 import pnumpy as pnp
 globals()['pnp'] = pnp
@@ -120,9 +120,6 @@ def forward_dropout(network, inputs):
     n_layer = len(network)
     for i in range(n_layer):
         layer = network[i]
-        print("-----in------------")
-        print("input shape: ", inputs.shape)
-        print("weigt: ", layer['weight'].shape)
         outputs_before_act = pnp.dot(inputs, layer['weight']) + pnp.dot(pnp.ones((inputs.shape[0], 1)), layer['bias'])
         layer['inputs'] = inputs
         layer['outputs_before_act'] = outputs_before_act
@@ -221,8 +218,6 @@ def nn(X_train, y_train, X_valid, y_valid, X_test, y_test, seed, hypers):
             error = pnp.mean(pnp.square(predict(network, X_valid, hypers) - y_valid))
             # error should be private <-
             
-            #print 'epoch', epoch, 'valid loss', error
-            # ignore the error - nan
             if error >= val_best:
                 nogain += 1
                 if nogain > patience:
@@ -268,6 +263,7 @@ def nns(X_train, y_train, X_valid, y_valid0, X_test, y_test0, norm_y, nets_num, 
     y_valid_pre = inverse_scale(y_valid_pre, norm_y)
     return R2(y_test, y_test_pre), y_test_pre
 
+
 def run(config):
 
     data_set = config[1][0]
@@ -294,12 +290,19 @@ def run(config):
         X_test = pp.farr(np.load(data_dir + i + "_Xtest.npy"))
         y_train = pp.farr(np.load(data_dir + i + "_ytrain.npy"))
         y_test = pp.farr(np.load(data_dir + i + "_ytest.npy"))
-
+        
+        #X_train = pp.ss("X_train")
+        #X_test = pp.ss("X_test")
+        #y_train = pp.ss("y_train")
+        #y_test = pp.ss("y_test")
+        
+        X_train = pp.farr(X_train)
+        X_test = pp.farr(X_test)
+        y_train = pp.farr(y_train)
+        y_test = pp.farr(y_test)
         ## X_train, X_test, y_train, y_test, all should be secretly shared <-
         
         print('**************', i, X_train.shape, X_test.shape, y_train.shape, y_test.shape, '***************')
-        
-        ## require MPC version <-
         
         # val, num_train, ran, random seed, index_perm, those five are public
         val = float(config[1][11])
@@ -329,8 +332,6 @@ def run(config):
         
         # train and test, ensemble number (i.e., 8) is public
         r2test, y_test_pred = nns(X_train_c, y_train_c, X_valid_c, y_valid_c, X_test_c, y_test_c, maxabs_y, ensemble, hyper, ran)
-        #if np.isnan(r2test) or np.isinf(r2test):
-        #    r2test = 0.0
         
         print('important log')
         print('seed:', ran)
@@ -364,11 +365,20 @@ globals()['run'] = run
 globals()['load_config'] = load_config
 
 
-# PATH - which dataset to train
 PATH_CONF = "conf/QSAR.conf"
 
 config = load_config(PATH_CONF)
-r2_test, y_test_pred = run(config)
+print("----- config information ------")
+print(config)
+r2_test, y_test_pred = run(config) # pp.sfixed(2.0), pp.sfixed(3.0)
 
-pp.reveal(y_test_pred, 'res1')
-pp.reveal(r2_test, 'res2')
+y_pred = pp.back2plain(y_test_pred)
+r2 = pp.back2plain(r2_test)
+
+if role == 'sa':
+    pred_result = open("result/ypred_result.txt", 'w')
+    r2_result = open("result/r2_result.txt", 'w')
+    pred_result.write(str(y_pred))
+    r2_result.write(str(r2))
+    pred_result.close()
+    r2_result.close()

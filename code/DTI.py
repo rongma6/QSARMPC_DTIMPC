@@ -42,7 +42,7 @@ def part_DTI_label(X):
 ##########          calculation for drug features       ##########
 ##################################################################
 
-## calculate drug similarity matrices
+## calculate drug similarity matrices, require MPC version <-
 def jaccard_sim_po(mat):
     intersect = pnp.dot(mat, pnp.transpose(mat))
     union = pnp.sum(mat, axis = 1)
@@ -53,25 +53,19 @@ def jaccard_sim_po(mat):
         sim[i, i] = pp.sfixed(1.0)
     return sim
     
-## pair-row dice similarity for the given matrix
+## pair-row dice similarity for the given matrix, require MPC version <-
 def dice_sim_matrix_po(X):
-    result = pnp.zeros((len(X), len(X)))
     sumX = pnp.sum(X, axis = 1)
     sumX = pnp.reshape(pnp.tile(sumX, len(X)), (len(X), len(X)))
     sumX = sumX + pnp.transpose(sumX)
     cmpX = pnp.zeros((len(X), len(X)))
-    tmp = pnp.zeros((2,len(X), len(X[0])))
     for i in range(len(X)):
-        tmp[0] = X
-        tmp[1] = pnp.reshape(pnp.tile(X[i], len(X)), (len(X), len(X[0])))
-        acmp = pnp.min(tmp, axis=0)
-        acmp = pnp.sum(acmp, axis = 1)
-        cmpX[i] = acmp
-    result = 2 * cmpX * myreciprocal(sumX * sumX,0.0)
+        cmpX[i] = pnp.sum(X * pnp.reshape(pnp.tile(X[i], len(X)), (len(X), len(X[0]))), axis = 1)
+    result = 2 * cmpX * myreciprocal(sumX * sumX, 0.0)
     result = sumX * result
     return result
 	
-## RWR for drugs
+## RWR for drugs, require MPC version <-
 def RWR_po(A, maxiter, restartProb):
     n = len(A)
     # normalize the adjacency matrix
@@ -87,7 +81,7 @@ def RWR_po(A, maxiter, restartProb):
         Q = (1 - restartProb) * pnp.dot(P, Q) + restart
     return Q
 
-## DCA for drugs
+## DCA for drugs, require MPC version <-
 def DCA_po(networks, dim, rsp, maxiter, pmiter, log_iter):
     def log_po(x, times):
         tmp = x - 1
@@ -162,7 +156,7 @@ def DCA_po(networks, dim, rsp, maxiter, pmiter, log_iter):
 ##########         functions for IMC            ##########
 ##########################################################
 
-## IMC with known drug-protein interactions, drug features and protein features
+## IMC with known drug-protein interactions, drug features and protein features, require MPC version <-
 def IMC_po(Y, D, P, k, lamb, maxiter, gciter):
     '''
     D: real matrix: 708 * (350 or lower) (private)
@@ -176,6 +170,7 @@ def IMC_po(Y, D, P, k, lamb, maxiter, gciter):
             ans = pp.farr(arr[ii]).dot(ans)
         return ans
     
+    ## require MPC version <-
     def grad_full(X, W, H, Y, l):
         '''
         The symbol in this function is consistent with the symbol in paper Large-scale Multi-label Learning with Missing Labels
@@ -244,7 +239,7 @@ def train(data_dir, seed_IMC, DTItrain, maxiterpr, maxiterd, restartProb, dim_dr
     ### input and output dir name for compact feature learning
     dir_inter = data_dir + 'data_prep/'
     dir_DTIMPC = data_dir + 'data_luo/' 
-    ### get drug networks
+    ### get drug networks, require MPC version <-
     # structure
     dpsM = np.load(dir_inter + 'finger_rdkit_' + str(explicit) + '.npy') 
     dpsM = pp.farr(dpsM)
@@ -273,10 +268,6 @@ def evaluate(Re, DTItest):
     auprs = average_precision_score(testy, pred) 
     return rocs, auprs
     return 0,0
-        
-def reveal(Re):
-    pp.reveal(Re,'Re')
-    return
 
 def demo(hyper_param):
     seed = hyper_param['seed']
@@ -292,7 +283,6 @@ def demo(hyper_param):
                hyper_param['restartProb'], hyper_param['dim_drug'], hyper_param['dim_prot'], 
                hyper_param['imc_k'], hyper_param['imc_iter'], hyper_param['log_iter'], hyper_param['pmiter'], 
                hyper_param['explicit'], hyper_param['gciter'], hyper_param['lamb'])
-    reveal(Re)
 
     test1 = read_ndarray(dir_trial, 'fold' + str(no) + '_test1basic', ' ', 'int32')
     auroc, aupr = evaluate(Re, test1)
@@ -310,10 +300,9 @@ def demo(hyper_param):
     auroc, aupr = evaluate(Re, test_all)
     metrics.append(auroc)
     metrics.append(aupr)
-    
-    reveal(Re)
-    
-    return metrics
+    Re = pp.back2plain(Re)
+    metrics = np.array(metrics)
+    return Re, metrics
 
 def load_conf(PATH):
     with open(PATH,'r') as f:
@@ -328,9 +317,12 @@ def load_conf(PATH):
                 hyper_param[c[0]] = int(c[1])
     return hyper_param
 
-# PATH - which dataset to train
 PATH_CONF = "conf/DTI.conf"
 
 hyper_param = load_conf(PATH_CONF)
-metrics = demo(hyper_param)
-pp.reveal(pp.farr(metrics),'metrics')
+Re, metrics = demo(hyper_param) 
+
+if role == 'sa':
+    np.savetxt("result/Re.txt",Re)
+    np.savetxt("result/metrics.txt",metrics)
+
