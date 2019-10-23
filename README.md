@@ -87,5 +87,13 @@ IMPORTANT TIPS:
 1. To stop the process, use `Ctrl + C`  and  `make kill` commands. 
 2. The experiments on the full datasets require a large amount of memory. We have tested on a machine with 96G memory. 
 
+## Check the results
+
+The results will be printed during running. Or you can check the results in the `result` directory after running. 
+
+For the DTI task, the predicted DTI scores will be in `result/Re.txt` and the AUPR and AUROC for the three settings (i.e., on 1:1 positive and negative samples, 1:10 positive and negative samples and all samples) will be in `result/metrics.txt`. 
+
+For the QSAR task, the predicted bioactivities for the testing data will be in `result/ypred_result.txt` and the squared Pearson correlation coefficient will be in `result/r2_result.txt`. 
+
 ## Contacts
 If you have any questions or comments, please feel free to email Rong Ma (ma-r17@mails.tsinghua.edu.cn) and/or Jianyang Zeng (zengjy321@tsinghua.edu.cn).
