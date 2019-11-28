@@ -17,7 +17,7 @@ cd QSARMPC_DTIMPC
 tar -xzvf bazel-bin.tar.gz
 ```
 
-3. Install the dependencies. This system is based on Python 3.6 and requires the following packages. On Ubuntu, 
+3. Install the dependencies. This system is based on Python 3.6 and requires the following packages. On Ubuntu 18, 
 
 ```shell
 sudo apt-get install python3.6 python3-pip
@@ -86,6 +86,7 @@ What do you want to run? DTI or QSAR: DTI
 IMPORTANT TIPS: 
 1. To stop the process, use `Ctrl + C`  and  `make kill` commands. 
 2. The experiments on the full datasets require a large amount of memory. We have tested on a machine with 96G memory. 
+3. The PrivPy framework requires the Ubuntu 18 environment. 
 
 ## Check the results
 
